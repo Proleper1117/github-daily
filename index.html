@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GitHub 每日精品 · 10k+ 星标精选</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🐙</span>
+    <div>
+      <h1>GitHub 每日精品</h1>
+      <p class="sub" id="issueLine">正在加载…</p>
+    </div>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="topActions">
+    <button id="refreshBtn" class="ghost primary" title="不满意这批？从候选池换一批">🔄 换一批</button>
+    <button id="themeBtn" class="ghost" title="切换深浅色">🌗</button>
+    <button id="favBtn" class="ghost" title="查看收藏">⭐ 收藏 <span id="favCount">0</span></button>
+  </div>
+</header>
+
+<div class="customBar" id="customBar" hidden></div>
+
+<div class="toolbar">
+  <nav class="chips" id="catChips"></nav>
+  <div class="right">
+    <select id="dateSel" class="select" title="查看往期"></select>
+    <input id="search" class="search" type="search" placeholder="搜索项目名 / 标签 / 变现点…" />
+  </div>
+</div>
+
+<div class="progressWrap">
+  <div class="progressText" id="progressText">今日学习进度：0 / 10</div>
+  <div class="progressBar"><div class="progressFill" id="progressFill"></div></div>
+</div>
+
+<main>
+  <section id="cards" class="cards"></section>
+  <p id="empty" class="empty" hidden>没有匹配的项目，换个标签或关键词试试。</p>
+</main>
+
+<aside id="favPanel" class="panel" hidden>
+  <div class="panelHead">
+    <h2>⭐ 我的收藏</h2>
+    <button id="closeFav" class="ghost">关闭</button>
+  </div>
+  <div id="favList" class="favList"></div>
+</aside>
+
+<footer class="foot">
+  <span>数据由 GitHub 搜索 API 实时采集 · 仅收录 ★10,000+ 且未归档的仓库</span>
+  <span id="genLine"></span>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
