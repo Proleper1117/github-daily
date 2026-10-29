@@ -328,4 +328,20 @@
     applyTheme(readLS(LS.theme, "dark") === "dark" ? "light" : "dark");
   };
   applyTheme(readLS(LS.theme, "dark"));
+
+  /* 关闭收藏面板的三种方式：点「关闭」按钮、点面板外空白处、按 Esc。
+     多点几种免得用户找不到出口（反馈过「关不掉」）。 */
+  document.addEventListener("click", function (e) {
+    var p = document.getElementById("favPanel");
+    if (!p || p.hidden) return;
+    if (p.contains(e.target)) return;
+    if (e.target.closest && e.target.closest("#favBtn")) return;
+    p.hidden = true;
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" || e.keyCode === 27) {
+      var p = document.getElementById("favPanel");
+      if (p) p.hidden = true;
+    }
+  });
 })();
