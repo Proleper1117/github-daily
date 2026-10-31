@@ -1,0 +1,57 @@
+name: 每日更新
+
+on:
+  schedule:
+    # 北京时间 08:00（UTC 00:00）
+    - cron: "0 0 * * *"
+    # 北京时间 20:00（UTC 12:00），兜底：早上没跑成时补上
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "强制重新抓取（忽略今日已更新检查）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+# 避免两次运行同时改文件
+concurrency:
+  group: daily-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 安装 Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 生成今日数据
+        env:
+          # 用 Actions 自带令牌，提高 GitHub API 限流额度
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ inputs.force }}" = "true" ]; then
+            python run_daily.py --force --no-deploy --root
+          else
+            python run_daily.py --no-deploy --root
+          fi
+
+      - name: 提交并推送
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html data.js
+          if git diff --staged --quiet; then
+            echo "今天没有变化，跳过提交"
+          else
+            git commit -m "chore: 每日更新 $(date -u +%F)"
+            git push
+          fi
