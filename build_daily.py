@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import random
 import sys
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -21,6 +21,14 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 ROOT = Path(__file__).resolve().parent
 CANDIDATES = ROOT / "candidates.json"
 OUT = ROOT / "data.js"
+
+# 统一按北京时间算"今天"：GitHub Actions 服务器是 UTC，
+# 直接用 date.today() 会差 8 小时，导致日期错位（已踩坑）。
+BEIJING = timezone(timedelta(hours=8))
+
+
+def beijing_today() -> date:
+    return datetime.now(BEIJING).date()
 
 # 分类配额（合计 10）
 QUOTA = {
@@ -203,7 +211,16 @@ def main() -> int:
     for cat, items in pool.items():
         print(f"  {cat:<10} {len(items):>4} 个（人工标注 {sum(1 for x in items if x['curated'])}）")
 
-    today = date.today()
+    # 防呆：候选池空时拒绝生成，保住上一版数据。
+    # 实际踩过：抓取失败把 candidates.json 写成空 → 这里照旧生成空 data.js 并部署，
+    # 线上页面变成「0 个项目」。
+    total_pool = sum(len(v) for v in pool.values())
+    if total_pool == 0:
+        print("\n[错误] 候选池为空（candidates.json 可能已损坏或抓取失败），拒绝生成 data.js。")
+        print("       请先运行 fetch_candidates.py 成功抓取一次。")
+        return 1
+
+    today = beijing_today()
     days = []
     used: set[str] = set()
     # 从今天往前生成：今天优先拿到人工标注的精选，之后几天依次用剩下的
@@ -240,6 +257,11 @@ def main() -> int:
                         todays.append(f)
                 todays.sort(key=lambda x: -x["stars"])
                 print(f"[今日追加] 已把 {len(forced)} 个手动添加的项目放进今天的列表")
+
+    # 防呆：今日列表为空则不写文件（否则会把线上页面弄成空白）
+    if not days[0]["items"]:
+        print("\n[错误] 今日列表为空，拒绝写入 data.js（保留上一版）。")
+        return 1
 
     payload = {
         "generatedAt": datetime.now().strftime("%Y-%m-%d %H:%M"),
