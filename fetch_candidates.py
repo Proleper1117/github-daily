@@ -123,6 +123,13 @@ def main() -> int:
     before = len(found)
     found = {k: v for k, v in found.items() if not v["archived"]}
 
+    # 防呆：网络/限流导致一条都没抓到（或一条查询都没成功）时，绝不能覆盖已有池。
+    # 实际踩过：某次 DNS 失败 → 抓到 0 个 → 覆盖成空池 → 页面变成空白。
+    if used_queries == 0 or len(found) == 0:
+        print(f"\n[错误] 本次抓取失败：成功查询 {used_queries}/{len(QUERIES)}，可用项目 {len(found)} 个。")
+        print("       保留原有 candidates.json，不覆盖。请检查网络后重试。")
+        return 1
+
     OUT.write_text(json.dumps(found, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"\n[完成] 成功查询 {used_queries}/{len(QUERIES)}，候选 {before} → 过滤归档后 {len(found)}")
     print(f"       已写入 {OUT}")
