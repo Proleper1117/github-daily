@@ -16,7 +16,7 @@ import json
 import re
 import subprocess
 import sys
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
@@ -24,9 +24,17 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
 ROOT = Path(__file__).resolve().parent
 DATA = ROOT / "data.js"
 
+# 统一用北京时间判断"今天"。GitHub Actions 的服务器是 UTC，
+# 直接用 date.today() 会和北京时间差 8 小时，导致守卫误判、跳过更新（已踩坑）。
+BEIJING = timezone(timedelta(hours=8))
+
+
+def beijing_today() -> date:
+    return datetime.now(BEIJING).date()
+
 
 def today_done() -> bool:
-    """data.js 里第一天的日期是不是今天。"""
+    """data.js 里第一天的日期是不是「北京时间的今天」。"""
     try:
         text = DATA.read_text(encoding="utf-8")
     except FileNotFoundError:
@@ -34,7 +42,7 @@ def today_done() -> bool:
     m = re.search(r'"date":\s*"(\d{4}-\d{2}-\d{2})"', text)
     if not m:
         return False
-    return m.group(1) == date.today().isoformat()
+    return m.group(1) == beijing_today().isoformat()
 
 
 def run(script: str, extra_args: list[str] | None = None) -> int:
@@ -56,10 +64,10 @@ def main() -> int:
     write_root = "--root" in sys.argv
 
     if not force and today_done():
-        print(f"[跳过] 今天（{date.today().isoformat()}）的数据已经生成过了。")
+        print(f"[跳过] 今天（{beijing_today().isoformat()}，北京时间）的数据已经生成过了。")
         return 0
 
-    print(f"[开始] 更新 {date.today().isoformat()} 的每日精品")
+    print(f"[开始] 更新 {beijing_today().isoformat()}（北京时间）的每日精品")
     steps = ["fetch_candidates.py", "build_daily.py"]
     for script in steps:
         code = run(script)
